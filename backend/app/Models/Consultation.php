@@ -23,7 +23,7 @@ class Consultation extends Model
     }
 
     public function doctor() {
-        return $this->belongsTo(Medical::class);
+        return $this->belongsTo(Medical::class, "doctor_id");
     }
 
     public function user() {

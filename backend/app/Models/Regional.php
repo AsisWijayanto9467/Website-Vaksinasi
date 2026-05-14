@@ -13,12 +13,13 @@ class Regional extends Model
         "district"
     ];
 
-    public function users() {
-        return $this->hasMany(User::class);
+    public function users()
+    {
+        return $this->hasMany(User::class, 'regional_id');
     }
 
     public function spots() {
-        return $this->belongsTo(Spot::class);
+        return $this->hasMany(Spot::class);
     }
 
     public function societies() {

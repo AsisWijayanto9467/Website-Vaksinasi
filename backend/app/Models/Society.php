@@ -30,6 +30,14 @@ class Society extends Model
         return $this->hasMany(Consultation::class);
     }
 
+    public function spotVaccines() {
+        return $this->hasMany(SpotVaccine::class);
+    }
+
+    public function medicals() {
+        return $this->hasMany(Medical::class);
+    }
+
     public function vaccinations() {
         return $this->hasMany(Vaccination::class);
     }

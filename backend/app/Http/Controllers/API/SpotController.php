@@ -108,4 +108,154 @@ class SpotController extends Controller
             ]);
         }
     }
+
+
+    // Untuk Admin
+    public function index()
+    {
+        try {
+            $spots = Spot::with(['regional', 'spotVaccines.vaccine'])
+                        ->withCount('medicals')
+                        ->get();
+
+            return response()->json([
+                "data" => $spots
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "message" => "Server Error",
+                "errors" => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function createSpot(Request $request)
+    {
+        try {
+            $request->validate([
+                "regional_id" => "required|exists:regionals,id",
+                "name" => "required|string|max:255",
+                "address" => "required|string",
+                "serve" => "required|integer|min:1|max:3",
+                "capacity" => "required|integer|min:1"
+            ]);
+
+            $spot = Spot::create([
+                "regional_id" => $request->regional_id,
+                "name" => $request->name,
+                "address" => $request->address,
+                "serve" => $request->serve,
+                "capacity" => $request->capacity
+            ]);
+
+            return response()->json([
+                "message" => "Spot created successfully",
+                "data" => $spot->load('regional')
+            ], 201);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "message" => "Server Error",
+                "errors" => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateSpot(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                "regional_id" => "required|exists:regionals,id",
+                "name" => "required|string|max:255",
+                "address" => "required|string",
+                "serve" => "required|integer|min:1|max:3",
+                "capacity" => "required|integer|min:1"
+            ]);
+
+            $spot = Spot::find($id);
+
+            if (!$spot) {
+                return response()->json([
+                    "message" => "Spot not found"
+                ], 404);
+            }
+
+            $spot->update([
+                "regional_id" => $request->regional_id,
+                "name" => $request->name,
+                "address" => $request->address,
+                "serve" => $request->serve,
+                "capacity" => $request->capacity
+            ]);
+
+            return response()->json([
+                "message" => "Spot updated successfully",
+                "data" => $spot->load('regional')
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "message" => "Server Error",
+                "errors" => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $spot = Spot::find($id);
+
+            if (!$spot) {
+                return response()->json([
+                    "message" => "Spot not found"
+                ], 404);
+            }
+
+            $spot->delete();
+
+            return response()->json([
+                "message" => "Spot deleted successfully"
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "message" => "Server Error",
+                "errors" => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function manageSpotVaccines(Request $request)
+    {
+        try {
+            $request->validate([
+                "spot_id" => "required|exists:spots,id",
+                "vaccine_ids" => "required|array",
+                "vaccine_ids.*" => "required|exists:vaccines,id"
+            ]);
+
+            // Remove existing vaccines for this spot
+            SpotVaccine::where("spot_id", $request->spot_id)->delete();
+
+            // Add new vaccines
+            foreach ($request->vaccine_ids as $vaccineId) {
+                SpotVaccine::create([
+                    "spot_id" => $request->spot_id,
+                    "vaccine_id" => $vaccineId
+                ]);
+            }
+
+            $spotVaccines = SpotVaccine::with('vaccine')
+                ->where("spot_id", $request->spot_id)
+                ->get();
+
+            return response()->json([
+                "message" => "Spot vaccines updated successfully",
+                "data" => $spotVaccines
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "message" => "Server Error",
+                "errors" => $th->getMessage()
+            ], 500);
+        }
+    }
 }

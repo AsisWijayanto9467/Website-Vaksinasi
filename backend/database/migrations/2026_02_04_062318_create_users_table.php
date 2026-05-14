@@ -20,6 +20,8 @@ return new class extends Migration
             $table->enum("gender", ["male", "female"]);
             $table->string("address");
             $table->date("born_date");
+            $table->text('login_tokens')->nullable();
+            $table->enum('role', ['admin', 'medical'])->default('medical');
             $table->timestamps();
         });
 
