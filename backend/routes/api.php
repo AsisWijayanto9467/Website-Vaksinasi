@@ -13,10 +13,14 @@ Route::prefix("v1")->group(function() {
     });
 
     Route::middleware("auth")->group(function() {
-        Route::post("/consultations", [ConsultationController::class, "createConsultation"]);
-        Route::get("/consultations", [ConsultationController::class, "getConsultation"]);
+        Route::prefix("consultations")->group(function() {
+            Route::post("/", [ConsultationController::class, "createConsultation"]);
+            Route::get("/", [ConsultationController::class, "getConsultation"]);
+        });
 
-        Route::get("/spots", [SpotController::class, "getSpots"]);
-        Route::get("/spots/{id}", [SpotController::class, "getDetailSpot"]);
+        Route::prefix("spots")->group(function() {
+            Route::get("/", [SpotController::class, "getSpots"]);
+            Route::get("/{id}", [SpotController::class, "getDetailSpot"]);
+        });
     });
 });

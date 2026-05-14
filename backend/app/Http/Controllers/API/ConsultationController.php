@@ -49,24 +49,55 @@ class ConsultationController extends Controller
         try {
             $user = Society::where("login_tokens", $request->query("token"))->first();
 
-            $cons = Consultation::where("society_id", $user->id)->first();
+            if (!$user) {
+                return response()->json([
+                    "message" => "User not found"
+                ], 404);
+            }
 
-            return response()->json([
-                "consultation" => [
+            $consultations = Consultation::with('doctor')
+                ->where("society_id", $user->id)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            if ($consultations->isEmpty()) {
+                return response()->json([
+                    "message" => "No consultations found"
+                ], 404);
+            }
+
+            $data = $consultations->map(function ($cons) {
+                return [
                     "id" => $cons->id,
                     "status" => $cons->status,
                     "disease_history" => $cons->disease_history,
                     "current_symptoms" => $cons->current_symptoms,
                     "doctor_notes" => $cons->doctor_notes,
-                    "doctor" => $cons->doctor,
-                ]
+                    "doctor" => $cons->doctor ? [
+                        "id" => $cons->doctor->id,
+                        "name" => $cons->doctor->name,
+                        "role" => $cons->doctor->role,
+                    ] : null,
+                    "created_at" => $cons->created_at,
+                    "updated_at" => $cons->updated_at,
+                ];
+            });
+
+            return response()->json([
+                "consultations" => $data,
+                "total" => $consultations->count()
             ], 200);
+
         } catch (\Throwable $th) {
-            Log::error("Terjadi kesalahan di logout", ["error", $th->getMessage()]);
+            Log::error("Terjadi kesalahan di getConsultation", [
+                "error" => $th->getMessage(),
+                "trace" => $th->getTraceAsString()
+            ]);
+
             return response()->json([
                 "message" => "Server Error",
                 "errors" => $th->getMessage()
-            ]);
+            ], 500);
         }
     }
 }
