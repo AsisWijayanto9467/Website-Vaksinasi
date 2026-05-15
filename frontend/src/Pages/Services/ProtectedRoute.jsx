@@ -1,3 +1,4 @@
+// src/Pages/Services/ProtectedRoute.jsx
 import { Navigate, Outlet } from "react-router-dom";
 
 export default function ProtectedRoute({ allowedRoles }) {
@@ -15,20 +16,22 @@ export default function ProtectedRoute({ allowedRoles }) {
 
     if (allowedRoles && allowedRoles.length > 0) {
         if (!allowedRoles.includes(user.role)) {
+            // Redirect ke dashboard sesuai role
             switch (user.role) {
                 case "admin":
                     return <Navigate to="/admin/dashboard" replace />;
                 case "doctor":
+                    return <Navigate to="/doctor/dashboard" replace />;
                 case "officer":
-                case "medical":
-                    return <Navigate to="/medical/dashboard" replace />;
+                    return <Navigate to="/officer/dashboard" replace />;
                 case "society":
                     return <Navigate to="/dashboard" replace />;
                 default:
+                    localStorage.removeItem("token");
+                    localStorage.removeItem("user");
                     return <Navigate to="/" replace />;
             }
         }
     }
-
     return <Outlet />;
 }

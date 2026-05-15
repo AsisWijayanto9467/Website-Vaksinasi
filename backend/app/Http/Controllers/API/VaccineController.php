@@ -8,6 +8,22 @@ use Illuminate\Http\Request;
 
 class VaccineController extends Controller
 {
+    public function showVaccine()
+    {
+        try {
+            $vaccines = Vaccine::all();
+
+            return response()->json([
+                "data" => $vaccines
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "message" => "Server Error",
+                "errors" => $th->getMessage()
+            ], 500);
+        }
+    }
+
     public function index()
     {
         try {

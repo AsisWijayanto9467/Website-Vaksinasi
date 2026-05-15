@@ -39,6 +39,9 @@ Route::prefix("v1")->group(function() {
             Route::put("/", [AuthController::class, "updateProfile"]);
         });
 
+        Route::get("/auth/vaccine", [VaccineController::class, "showVaccine"]);
+        Route::get("/auth/spots", [SpotController::class, "showSpot"]);
+
         Route::prefix("vaccinations")->group(function() {
             Route::post("/", [VaccinationController::class, "registerVaccination"]);
             Route::get("/", [VaccinationController::class, "getVaccinationHistory"]);
@@ -64,6 +67,7 @@ Route::prefix("v1")->group(function() {
         Route::get("/spots/{spotId}/capacity", [OfficerController::class, "checkCapacity"]);
         Route::get("/queue/today", [OfficerController::class, "todayQueue"]);
     });
+
 
     Route::prefix("admin")->middleware("admin")->group(function() {
         // CRUD Vaccines

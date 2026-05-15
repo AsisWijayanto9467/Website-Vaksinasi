@@ -109,6 +109,25 @@ class SpotController extends Controller
         }
     }
 
+    // society
+    public function showSpot()
+    {
+        try {
+            $spots = Spot::with(['regional', 'spotVaccines.vaccine'])
+                        ->withCount('medicals')
+                        ->get();
+
+            return response()->json([
+                "data" => $spots
+            ], 200);
+        } catch (\Throwable $th) {
+            return response()->json([
+                "message" => "Server Error",
+                "errors" => $th->getMessage()
+            ], 500);
+        }
+    }
+
 
     // Untuk Admin
     public function index()

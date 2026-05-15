@@ -19,7 +19,6 @@ class VaccinationController extends Controller
         DB::beginTransaction();
         try {
             $token = $request->query("token");
-
             $society = Society::where("login_tokens", $token)->first();
 
             if (!$society) {
@@ -32,9 +31,10 @@ class VaccinationController extends Controller
                 "spot_id" => "required|exists:spots,id",
                 "vaccine_id" => "required|exists:vaccines,id",
                 "date" => "required|date|after_or_equal:today",
-                "dose" => "required|integer|in:1,2"
+                "dose" => "required|integer|min:1|max:10" // Maksimum 10 dosis
             ]);
 
+            // Cek konsultasi harus accepted
             $consultation = Consultation::where("society_id", $society->id)
                 ->where("status", "accepted")
                 ->first();
@@ -45,47 +45,70 @@ class VaccinationController extends Controller
                 ], 400);
             }
 
+            // Ambil riwayat vaksinasi user
             $existingVaccinations = Vaccination::where("society_id", $society->id)
                 ->orderBy("dose", "asc")
                 ->get();
 
-            if ($request->dose == 1 && $existingVaccinations->where("dose", 1)->count() > 0) {
-                return response()->json([
-                    "message" => "You have already received dose 1"
-                ], 400);
-            }
+            // ===== VALIDASI BERDASARKAN DOSIS =====
 
-            if ($request->dose == 2) {
-                $dose1 = $existingVaccinations->where("dose", 1)->first();
+            // Validasi dosis harus berurutan
+            $maxExistingDose = $existingVaccinations->max("dose");
 
-                if (!$dose1) {
+            if ($request->dose > 1) {
+                // Cek apakah dosis sebelumnya sudah ada
+                $previousDose = $existingVaccinations->where("dose", $request->dose - 1)->first();
+
+                if (!$previousDose) {
                     return response()->json([
-                        "message" => "You must receive dose 1 first"
+                        "message" => "You must receive dose " . ($request->dose - 1) . " first"
                     ], 400);
                 }
 
-                if ($existingVaccinations->where("dose", 2)->count() > 0) {
+                // Cek duplikasi dosis
+                if ($existingVaccinations->where("dose", $request->dose)->count() > 0) {
                     return response()->json([
-                        "message" => "You have already received dose 2"
+                        "message" => "You have already received dose " . $request->dose
                     ], 400);
                 }
 
-                $dose1Date = Carbon::parse($dose1->date);
+                // ===== ATURAN JARAK ANTAR DOSIS =====
+                $previousDate = Carbon::parse($previousDose->date);
                 $requestDate = Carbon::parse($request->date);
+                $daysDiff = $previousDate->diffInDays($requestDate);
 
-                if ($dose1Date->diffInDays($requestDate) < 14) {
+                // Aturan jarak berbeda untuk setiap dosis
+                $minimumInterval = $this->getMinimumInterval($request->dose);
+
+                if ($daysDiff < $minimumInterval) {
                     return response()->json([
-                        "message" => "Dose 2 must be at least 14 days after dose 1"
+                        "message" => "Dose {$request->dose} must be at least {$minimumInterval} days after dose " . ($request->dose - 1)
                     ], 400);
                 }
 
-                if ($dose1->vaccine_id != $request->vaccine_id) {
+                // Untuk dosis 2, vaksin harus sama dengan dosis 1
+                if ($request->dose == 2) {
+                    if ($previousDose->vaccine_id != $request->vaccine_id) {
+                        return response()->json([
+                            "message" => "Dose 2 must use the same vaccine as dose 1"
+                        ], 400);
+                    }
+                }
+
+                // Untuk booster (dosis >= 3), vaksin bisa berbeda (heterologous booster)
+                if ($request->dose >= 3) {
+                    // Optional: Bisa ditambahkan validasi jenis vaksin booster yang direkomendasikan
+                }
+            } else {
+                // Dosis 1
+                if ($existingVaccinations->where("dose", 1)->count() > 0) {
                     return response()->json([
-                        "message" => "Dose 2 must use the same vaccine as dose 1"
+                        "message" => "You have already received dose 1"
                     ], 400);
                 }
             }
 
+            // ===== VALIDASI SPOT & KAPASITAS =====
             $spot = Spot::find($request->spot_id);
             $vaccinationCount = Vaccination::where("spot_id", $request->spot_id)
                 ->where("date", $request->date)
@@ -97,6 +120,7 @@ class VaccinationController extends Controller
                 ], 400);
             }
 
+            // ===== VALIDASI VAKSIN DI SPOT =====
             $spotVaccine = DB::table("spot_vaccines")
                 ->where("spot_id", $request->spot_id)
                 ->where("vaccine_id", $request->vaccine_id)
@@ -108,6 +132,7 @@ class VaccinationController extends Controller
                 ], 400);
             }
 
+            // ===== VALIDASI TANGGAL YANG SAMA =====
             $existingRegistration = Vaccination::where("society_id", $society->id)
                 ->where("date", $request->date)
                 ->first();
@@ -118,6 +143,7 @@ class VaccinationController extends Controller
                 ], 400);
             }
 
+            // ===== VALIDASI TENAGA MEDIS =====
             $doctor = Medical::where("spot_id", $request->spot_id)
                 ->where("role", "doctor")
                 ->first();
@@ -132,6 +158,7 @@ class VaccinationController extends Controller
                 ], 400);
             }
 
+            // ===== SIMPAN VAKSINASI =====
             $vaccination = Vaccination::create([
                 "dose" => $request->dose,
                 "date" => $request->date,
@@ -148,7 +175,6 @@ class VaccinationController extends Controller
                 "message" => "Vaccination registered successfully",
                 "data" => $vaccination->load(['spot', 'vaccine', 'doctor', 'officer'])
             ], 201);
-
         } catch (\Throwable $th) {
             DB::rollBack();
             return response()->json([
@@ -158,6 +184,16 @@ class VaccinationController extends Controller
         }
     }
 
+    private function getMinimumInterval($dose)
+    {
+        return match ($dose) {
+            2 => 14,
+            3 => 90,
+            4 => 180,
+            5 => 365,
+            default => 30,
+        };
+    }
     public function getVaccinationHistory(Request $request)
     {
         try {
@@ -172,11 +208,11 @@ class VaccinationController extends Controller
             }
 
             $vaccinations = Vaccination::with([
-                    'spot.regional',
-                    'vaccine',
-                    'doctor',
-                    'officer'
-                ])
+                'spot.regional',
+                'vaccine',
+                'doctor',
+                'officer'
+            ])
                 ->where("society_id", $society->id)
                 ->orderBy("date", "desc")
                 ->orderBy("dose", "asc")
@@ -225,7 +261,6 @@ class VaccinationController extends Controller
                 "vaccinations" => $data,
                 "total" => $vaccinations->count()
             ], 200);
-
         } catch (\Throwable $th) {
             return response()->json([
                 "message" => "Server Error",
@@ -393,7 +428,7 @@ class VaccinationController extends Controller
 
             return response()->json([
                 "date" => $date,
-                "vaccinations" => $vaccinations->map(function($vac) {
+                "vaccinations" => $vaccinations->map(function ($vac) {
                     return [
                         "id" => $vac->id,
                         "dose" => $vac->dose,

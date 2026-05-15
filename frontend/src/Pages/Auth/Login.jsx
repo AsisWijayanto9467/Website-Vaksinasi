@@ -1,3 +1,4 @@
+// src/Pages/Auth/Login.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -33,16 +34,21 @@ export default function Login() {
         }),
       );
 
-      if (role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (
-        role === "medical" ||
-        role === "doctor" ||
-        role === "officer"
-      ) {
-        navigate("/medical/dashboard");
-      } else {
-        navigate("/dashboard");
+      switch (role) {
+        case "admin":
+          navigate("/admin/dashboard");
+          break;
+        case "doctor":
+          navigate("/doctor/dashboard");
+          break;
+        case "officer":
+          navigate("/officer/dashboard");
+          break;
+        case "society":
+          navigate("/dashboard");
+          break;
+        default:
+          navigate("/");
       }
     } catch (err) {
       if (err.response) {

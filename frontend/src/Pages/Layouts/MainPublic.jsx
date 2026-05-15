@@ -1,4 +1,3 @@
-// src/Layouts/MainPublic.jsx
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -8,17 +7,13 @@ import {
     faComments,
     faSyringe,
     faCalendarCheck,
-    faFileMedical,
     faUser,
     faRightFromBracket,
-    faUsers,
-    faCalendarAlt,
-    faFileAlt,
-    faHospital,
     faBars,
     faTimes,
     faStethoscope,
-    faUserNurse
+    faUserNurse,
+    faListCheck,
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 
@@ -52,25 +47,25 @@ export default function MainPublic({ children }) {
     const userRole = userData?.role;
     const userName = userData?.name;
 
-    // Determine if user is society or medical staff
-    const isSociety = !['medical', 'doctor', 'officer', 'admin'].includes(userRole);
+    const isAdmin = userRole === 'admin';
     const isDoctor = userRole === 'doctor';
     const isOfficer = userRole === 'officer';
-    const isMedicalStaff = isDoctor || isOfficer || userRole === 'medical';
+    const isSociety = userRole === 'society';
 
     // Get display role
     const getDisplayRole = () => {
+        if (isAdmin) return 'Administrator';
         if (isDoctor) return 'Doctor';
         if (isOfficer) return 'Officer';
-        if (isMedicalStaff) return 'Medical Staff';
-        return 'Society Member';
+        if (isSociety) return 'Society Member';
+        return 'User';
     };
 
     // Get role icon
     const getRoleIcon = () => {
         if (isDoctor) return faStethoscope;
         if (isOfficer) return faUserNurse;
-        if (isMedicalStaff) return faHospital;
+        if (isAdmin) return faGauge;
         return faUser;
     };
 
@@ -78,30 +73,37 @@ export default function MainPublic({ children }) {
     const getRoleBadgeColor = () => {
         if (isDoctor) return 'success';
         if (isOfficer) return 'info';
-        if (isMedicalStaff) return 'success';
+        if (isAdmin) return 'warning';
         return 'primary';
     };
 
-    // Navigation items based on role
+    // Get dashboard path based on role
+    const getDashboardPath = () => {
+        if (isDoctor) return '/doctor/dashboard';
+        if (isOfficer) return '/officer/dashboard';
+        if (isSociety) return '/dashboard';
+        return '/dashboard';
+    };
+
+    // Get navigation items based on role
     const getNavItems = () => {
-        if (isSociety) {
+        if (isDoctor) {
+            return [
+                { path: '/doctor/dashboard', icon: faGauge, label: 'Dashboard' },
+            { path: '/doctor/consultation', icon: faComments, label: 'Konsultasi' },
+            { path: '/doctor/vaccination-history', icon: faSyringe, label: 'Vaksinasi' },
+            ];
+        } else if (isOfficer) {
+            return [
+                { path: '/officer/dashboard', icon: faGauge, label: 'Dashboard' },
+                { path: '/officer/manage-vaccination', icon: faListCheck, label: 'Verifikasi Vaksinasi' },
+            ];
+        } else if (isSociety) {
             return [
                 { path: '/dashboard', icon: faGauge, label: 'Dashboard' },
-                { path: '/consultations', icon: faComments, label: 'Consultations' },
-                { path: '/vaccinations', icon: faSyringe, label: 'Vaccinations' },
-                { path: '/appointments', icon: faCalendarCheck, label: 'Appointments' },
-                { path: '/medical-records', icon: faFileMedical, label: 'Medical Records' },
-                { path: '/profile', icon: faUser, label: 'Profile' },
-            ];
-        } else if (isMedicalStaff) {
-            return [
-                { path: '/medical/dashboard', icon: faGauge, label: 'Dashboard' },
-                { path: '/medical/patients', icon: faUsers, label: 'Patients' },
-                { path: '/medical/consultations', icon: faComments, label: 'Consultations' },
-                { path: '/medical/vaccinations', icon: faSyringe, label: 'Vaccinations' },
-                { path: '/medical/schedule', icon: faCalendarAlt, label: 'Schedule' },
-                { path: '/medical/reports', icon: faFileAlt, label: 'Reports' },
-                { path: '/profile', icon: faUser, label: 'Profile' },
+                { path: '/consultations', icon: faComments, label: 'Konsultasi' },
+                { path: '/spot-vaccination', icon: faCalendarCheck, label: 'Spots' },
+                { path: '/vaccination', icon: faSyringe, label: 'Vaksinasi' },
             ];
         }
         return [];
@@ -109,12 +111,27 @@ export default function MainPublic({ children }) {
 
     const navItems = getNavItems();
 
+    // Get gradient color based on role
+    const getNavbarGradient = () => {
+        if (isDoctor) return 'linear-gradient(135deg, #166534 0%, #16a34a 100%)';
+        if (isOfficer) return 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)';
+        if (isSociety) return 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)';
+        return 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)';
+    };
+
+    // Get icon color based on role
+    const getIconColor = () => {
+        if (isDoctor) return '#16a34a';
+        if (isOfficer) return '#3b82f6';
+        return '#2563eb';
+    };
+
     return (
         <div className="d-flex flex-column min-vh-100" style={{ backgroundColor: '#f0f4f8' }}>
             {/* Navbar */}
             <nav className="navbar navbar-expand-lg sticky-top shadow-sm" 
                  style={{ 
-                     background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)',
+                     background: getNavbarGradient(),
                      boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
                  }}>
                 <div className="container-fluid px-4 py-2">
@@ -122,11 +139,11 @@ export default function MainPublic({ children }) {
                     <span 
                         className="navbar-brand text-white fw-bold d-flex align-items-center gap-2" 
                         style={{ fontSize: '1.2rem', cursor: 'pointer' }}
-                        onClick={() => navigate(isSociety ? '/dashboard' : '/medical/dashboard')}
+                        onClick={() => navigate(getDashboardPath())}
                     >
                         <div className="bg-white rounded-circle d-flex align-items-center justify-content-center" 
                              style={{ width: '35px', height: '35px' }}>
-                            <FontAwesomeIcon icon={faHeartPulse} style={{ color: '#2563eb', fontSize: '1.1rem' }} />
+                            <FontAwesomeIcon icon={faHeartPulse} style={{ color: getIconColor(), fontSize: '1.1rem' }} />
                         </div>
                         HealthCare
                     </span>
@@ -153,7 +170,7 @@ export default function MainPublic({ children }) {
                                     key={index}
                                     className={`btn d-flex align-items-center gap-2 mx-1 my-1 ${
                                         isActive(item.path) 
-                                            ? 'btn-light text-primary fw-semibold' 
+                                            ? 'btn-light fw-semibold' 
                                             : 'text-white'
                                     }`}
                                     onClick={() => {
@@ -164,7 +181,8 @@ export default function MainPublic({ children }) {
                                         borderRadius: '8px',
                                         transition: 'all 0.2s ease',
                                         backgroundColor: isActive(item.path) ? '#ffffff' : 'transparent',
-                                        border: isActive(item.path) ? '1px solid #ffffff' : '1px solid transparent'
+                                        border: isActive(item.path) ? '1px solid #ffffff' : '1px solid transparent',
+                                        color: isActive(item.path) ? '#1e293b' : '#ffffff'
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!isActive(item.path)) {
@@ -193,7 +211,7 @@ export default function MainPublic({ children }) {
                                      style={{ width: '38px', height: '38px' }}>
                                     <FontAwesomeIcon 
                                         icon={getRoleIcon()} 
-                                        style={{ color: '#2563eb', fontSize: '1.1rem' }} 
+                                        style={{ color: getIconColor(), fontSize: '1.1rem' }} 
                                     />
                                 </div>
                                 <div className="d-none d-md-block">
@@ -239,6 +257,16 @@ export default function MainPublic({ children }) {
             <main className="flex-grow-1">
                 {children}
             </main>
+
+            {/* Footer */}
+            <footer className="py-3 text-center text-muted" style={{ backgroundColor: '#ffffff', borderTop: '1px solid #e2e8f0' }}>
+                <small>
+                    &copy; {new Date().getFullYear()} HealthCare System. All rights reserved.
+                    {isDoctor && ' - Doctor Portal'}
+                    {isOfficer && ' - Officer Portal'}
+                    {isSociety && ' - Society Portal'}
+                </small>
+            </footer>
 
             {/* Logout Confirmation Modal */}
             {showLogoutModal && (
