@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class VaccinationController extends Controller
 {
-     public function registerVaccination(Request $request)
+    public function registerVaccination(Request $request)
     {
         DB::beginTransaction();
         try {

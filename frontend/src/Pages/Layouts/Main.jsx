@@ -8,27 +8,23 @@ import {
     faGauge,
     faUsers,
     faLocationDot,
-    faHospital,
     faFileAlt,
-    faGear,
-    faClipboard,
     faComments,
     faCapsules,
     faCalendarAlt,
     faCalendarCheck,
     faFileMedical,
     faUser,
-    faBell,
     faChevronRight,
     faRightFromBracket,
     faTriangleExclamation,
     faCircleXmark,
     faCircleCheck,
-    faShieldHalved
+    faShieldHalved,
+    faSyringe,
+    faMapPin,
+    faUserDoctor
 } from '@fortawesome/free-solid-svg-icons';
-
-
-
 
 export default function Main({ children }) {
     const navigate = useNavigate();
@@ -36,25 +32,21 @@ export default function Main({ children }) {
     const [showLogoutPopup, setShowLogoutPopup] = useState(false);
 
     const handleLogout = async () => {
-        const isConfirmed = window.confirm('Apakah Anda yakin ingin keluar?\nAnda akan diarahkan ke halaman login');
-        
-        if (isConfirmed) {
-            try {
-                const token = localStorage.getItem("token");
-                
-                await api.post('/auth/logout', {
-                    token: token
-                });
-            } catch (err) {
-                console.log('Logout API error:', err);
-            } finally {
-                localStorage.clear();
-                navigate('/', { replace: true });
-            }
+        try {
+            const token = localStorage.getItem("token");
+            
+            await api.post('/auth/logout', {
+                token: token
+            });
+        } catch (err) {
+            console.log('Logout API error:', err);
+        } finally {
+            localStorage.clear();
+            navigate('/', { replace: true });
         }
     };
 
-        const isActive = (path) => {
+    const isActive = (path) => {
         return location.pathname === path || location.pathname.startsWith(path + '/');
     };
 
@@ -62,16 +54,16 @@ export default function Main({ children }) {
     const userRole = userData?.role;
     const userName = userData?.name;
 
-    // Sidebar Menu Items berdasarkan Role dengan FontAwesome icons
+    // Sidebar Menu Items berdasarkan Role
     const getSidebarMenu = () => {
         if (userRole === 'admin') {
             return [
                 { path: '/admin/dashboard', icon: faGauge, label: 'Dashboard' },
-                { path: '/admin/users', icon: faUsers, label: 'Users' },
+                { path: '/admin/vaccines', icon: faSyringe, label: 'Vaccines' },
                 { path: '/admin/regionals', icon: faLocationDot, label: 'Regionals' },
-                { path: '/admin/hospitals', icon: faHospital, label: 'Hospitals' },
-                { path: '/admin/reports', icon: faFileAlt, label: 'Reports' },
-                { path: '/admin/settings', icon: faGear, label: 'Settings' },
+                { path: '/admin/report', icon: faFileAlt, label: 'Report' },
+                { path: '/admin/spots', icon: faMapPin, label: 'Spots' },
+                { path: '/admin/medicals', icon: faUserDoctor, label: 'Medicals' },
             ];
         } else if (['medical', 'doctor', 'officer'].includes(userRole)) {
             return [
@@ -95,6 +87,7 @@ export default function Main({ children }) {
     };
 
     const sidebarMenu = getSidebarMenu();
+
     const getRoleBadge = () => {
         if (userRole === 'admin') {
             return { label: 'Administrator', color: 'danger' };
@@ -195,7 +188,7 @@ export default function Main({ children }) {
                 <div className="p-3 border-top border-secondary">
                     <button
                         className="btn btn-outline-light w-100 d-flex align-items-center justify-content-center gap-2"
-                        onClick={handleLogout}
+                        onClick={() => setShowLogoutPopup(true)}
                         style={{ transition: 'all 0.2s' }}
                         onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
@@ -221,12 +214,14 @@ export default function Main({ children }) {
                             <div>
                                 <h5 className="mb-0 text-dark fw-bold">
                                     {isActive('/admin/dashboard') && 'Admin Dashboard'}
+                                    {isActive('/admin/vaccines') && 'Vaccines Management'}
+                                    {isActive('/admin/regionals') && 'Regional Management'}
+                                    {isActive('/admin/report') && 'Reports'}
+                                    {isActive('/admin/spots') && 'Spots Management'}
+                                    {isActive('/admin/medicals') && 'Medical Staff'}
                                     {isActive('/medical/dashboard') && 'Medical Dashboard'}
                                     {isActive('/dashboard') && 'Society Dashboard'}
                                     {isActive('/profile') && 'Profile'}
-                                    {isActive('/admin/users') && 'User Management'}
-                                    {isActive('/admin/regionals') && 'Regional Management'}
-                                    {isActive('/admin/reports') && 'Reports'}
                                     {isActive('/medical/patients') && 'Patients'}
                                     {isActive('/medical/consultations') && 'Consultations'}
                                     {isActive('/medical/vaccinations') && 'Vaccinations'}
@@ -280,6 +275,7 @@ export default function Main({ children }) {
                 </footer>
             </div>
 
+            {/* Logout Confirmation Popup */}
             {showLogoutPopup && (
                 <div 
                     style={{
@@ -308,7 +304,6 @@ export default function Main({ children }) {
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Warning Icon */}
                         <div style={{ marginBottom: '20px' }}>
                             <FontAwesomeIcon 
                                 icon={faTriangleExclamation} 
@@ -322,12 +317,10 @@ export default function Main({ children }) {
                             />
                         </div>
                         
-                        {/* Title */}
                         <h5 style={{ marginBottom: '10px', fontWeight: 'bold', color: '#333' }}>
                             Konfirmasi Logout
                         </h5>
                         
-                        {/* Message */}
                         <p style={{ color: '#666', marginBottom: '5px' }}>
                             Apakah Anda yakin ingin keluar?
                         </p>
@@ -335,7 +328,6 @@ export default function Main({ children }) {
                             Anda akan diarahkan ke halaman login
                         </small>
                         
-                        {/* Buttons */}
                         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                             <button
                                 onClick={() => setShowLogoutPopup(false)}

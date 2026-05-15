@@ -1,9 +1,12 @@
 import React from 'react'
+import MainPublic from '../Layouts/MainPublic'
 
 export default function DashboardSociety() {
   return (
-    <div>
-      
-    </div>
+    <>
+      <MainPublic>
+        Hello
+      </MainPublic>
+    </>
   )
 }
