@@ -88,8 +88,8 @@ Route::prefix("v1")->group(function() {
         // Manage Medical Staff
         Route::get("/medicals", [MedicalController::class, "index"]);
         Route::post("/medicals", [MedicalController::class, "store"]);
-        Route::post("/medicals/assign-spot", [MedicalController::class, "assignToSpot"]);
         Route::delete("/medicals/{id}", [MedicalController::class, "destroy"]);
+        Route::put("/medicals/{id}", [MedicalController::class, "update"]);
 
         // Reports & Statistics
         Route::get("/reports/vaccinations", [ReportController::class, "vaccinationReport"]);

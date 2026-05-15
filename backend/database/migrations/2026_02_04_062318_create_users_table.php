@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('password');
-            $table->integer("id_card_number");
+            $table->bigInteger("id_card_number");
             $table->foreignId("regional_id")->constrained("regionals")->cascadeOnDelete();
             $table->enum("gender", ["male", "female"]);
             $table->string("address");
